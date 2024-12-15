@@ -79,6 +79,12 @@ def load_data(filename):
 
         raise ValueError(f"Could not to load file {filename} with any encoding.")
 
+def create_output_folder(filename):
+    folder_name = os.path.splitext(os.path.basename(filename))[0]
+    if not os.path.exists(folder_name):
+        os.makedirs(folder_name)
+    return folder_name
+
 def generic_analysis(df):
     """Performing generic analysis on the dataset."""
     analysis = {
@@ -200,8 +206,7 @@ def agentic_workflow(data_summary, feature_types):
     else:
         return initial_insights
 
-def create_visualizations(df):
-    """Generating and save visualizations based on data."""
+def create_visualizations(df, output_folder):
     numeric_df = preprocess_data(df)
     visualization_df = preprocess_for_visualization(numeric_df)
 
@@ -211,7 +216,7 @@ def create_visualizations(df):
         plt.title("Correlation Heatmap", fontsize=16)
         plt.xlabel("Features")
         plt.ylabel("Features")
-        plt.savefig("correlation_heatmap.png")
+        plt.savefig(os.path.join(output_folder, "correlation_heatmap.png"))
         plt.close()
 
     if visualization_df.shape[1] > 1:
@@ -223,16 +228,20 @@ def create_visualizations(df):
         plt.xlabel(visualization_df.columns[0])
         plt.ylabel(visualization_df.columns[1])
         plt.legend(title="Outliers")
-        plt.savefig("outlier_detection.png")
+        plt.savefig(os.path.join(output_folder, "outlier_detection.png"))
         plt.close()
 
     if visualization_df.shape[1] > 1:
         selected_columns = visualization_df.columns[:5]
         sns.pairplot(visualization_df[selected_columns], palette="husl")
-        plt.savefig("pairplot_analysis.png")
+        plt.savefig(os.path.join(output_folder, "pairplot_analysis.png"))
         plt.close()
 
-    return ["correlation_heatmap.png", "outlier_detection.png", "pairplot_analysis.png"]
+    return [
+        os.path.join(output_folder, "correlation_heatmap.png"),
+        os.path.join(output_folder, "outlier_detection.png"),
+        os.path.join(output_folder, "pairplot_analysis.png")
+    ]
 
 def image_to_base64(image_path):
     with open(image_path, "rb") as img_file:
@@ -273,21 +282,31 @@ def narrate_story(summary, insights, advanced_analyses, charts, special_analyses
     return query_chat_completion(prompt)
 
 
-def save_readme(content, charts):
-    """Save narrative and charts as README.md."""
-    with open("README.md", "w") as file:
-        file.write(content)
-        for chart in charts:
-            file.write(f"![{chart}]({chart})\n")
+def save_readme(content, output_folder):
+    readme_path = os.path.join(output_folder, "README.md")
+    with open(readme_path, "w") as readme_file:
+        readme_file.write(content)
+    print(f"README.md saved at {readme_path}")
 
 if __name__ == "__main__":
     import sys
+    import os
 
     if len(sys.argv) != 2:
         print("Usage: uv run autolysis.py <dataset.csv>")
         sys.exit(1)
 
     dataset = sys.argv[1]
+
+    # Generate output folder name based on dataset name (without extension)
+    output_folder = os.path.splitext(os.path.basename(dataset))[0]
+
+    # Create the output folder dynamically
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+        print(f"Created output folder: {output_folder}")
+    else:
+        print(f"Output folder already exists: {output_folder}")
 
     try:
         df = load_data(dataset)
@@ -307,13 +326,14 @@ if __name__ == "__main__":
         insights = agentic_workflow(summary, feature_types)
         print("LLM insights retrieved.")
 
-        charts = create_visualizations(df)
+        charts = create_visualizations(df, output_folder)  # Save visualizations in the output folder
         print("Visualizations created.")
 
         story = narrate_story(summary, insights, advanced_analyses, charts, special_analyses)
         print("Narrative created.")
 
-        save_readme(story, charts)
-        print("README.md generated.")
+        save_readme(story, output_folder)  # Save README.md in the output folder
+        print(f"README.md generated in {output_folder}.")
     except Exception as e:
         print("Error:", e)
+
