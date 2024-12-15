@@ -259,26 +259,33 @@ def analyze_image_with_vision_api(image_path, model="gpt-4o-mini"):
     }
 
     try:
-        with open(image_path, "rb") as image_file:
-            image_base64 = base64.b64encode(image_file.read()).decode("utf-8")
+        # Convert image to base64
+        image_base64 = image_to_base64(image_path)
         
+        # Prepare payload
         payload = {
             "model": model,
+            "messages": [{"role": "user", "content": "Analyze this image."}],
             "image": image_base64
         }
+
+        # Make API request
         response = requests.post(BASE_URL, headers=headers, json=payload)
+
+        # Raise an error if the request was unsuccessful
         response.raise_for_status()
 
-        response_data = response.json()
-        insights = response_data.get("choices", [{}])[0].get("message", {}).get("content", "No insights returned.")
-        return insights
+        # Parse and return JSON response
+        return response.json()
 
-    except FileNotFoundError:
-        return "Error: Image file not found."
-    except requests.RequestException as e:
-        return f"Error during API call: {e}"
+    except requests.exceptions.HTTPError as http_err:
+        return {"error": f"HTTP error occurred: {http_err}", "status_code": response.status_code}
+    except requests.exceptions.RequestException as req_err:
+        return {"error": f"Request error occurred: {req_err}"}
+    except ValueError as val_err:
+        return {"error": f"Value error: {val_err}"}
     except Exception as e:
-        return f"Unexpected error: {e}"
+        return {"error": f"An unexpected error occurred: {e}"}
 
 def narrate_story(summary, insights, advanced_analyses, charts, special_analyses):
     """Generate a cohesive and structured narrative story."""
