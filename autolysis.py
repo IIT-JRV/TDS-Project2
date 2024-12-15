@@ -27,6 +27,7 @@ import base64
 from functools import lru_cache
 
 load_dotenv()
+#Set the AIPROXY token in the environment. I have used load_env here since I used a .env file to store it locally.
 AIPROXY_TOKEN = os.getenv("AIPROXY_TOKEN")
 
 if not AIPROXY_TOKEN:
@@ -80,6 +81,7 @@ def load_data(filename):
         raise ValueError(f"Could not to load file {filename} with any encoding.")
 
 def create_output_folder(filename):
+    """creating the output folder based on the filename. It removes the file type ending and makes a new directory"""
     folder_name = os.path.splitext(os.path.basename(filename))[0]
     if not os.path.exists(folder_name):
         os.makedirs(folder_name)
@@ -185,7 +187,7 @@ def advanced_analysis(df):
     return analysis
 
 def adapt_prompt_based_on_data(data_summary, feature_types):
-    """Generating dynamic prompts based on dataset properties."""
+    """Generates dynamic prompts for the LLM based on dataset characteristics. It summarizes key insights with focus on specialised feature types"""
     if len(data_summary["columns"]) > 50:
         return "The dataset has many columns. Focus on identifying the most critical features and summarizing insights concisely."
     elif "time_series" in feature_types and feature_types["time_series"]:
@@ -207,6 +209,7 @@ def agentic_workflow(data_summary, feature_types):
         return initial_insights
 
 def create_visualizations(df, output_folder):
+    """Creates visualizations on the dataset. It covers 3 plots: correlation heatmap, outlier scores and pairplot analysis"""
     numeric_df = preprocess_data(df)
     visualization_df = preprocess_for_visualization(numeric_df)
 
@@ -244,6 +247,7 @@ def create_visualizations(df, output_folder):
     ]
 
 def image_to_base64(image_path):
+    """Encodes the image to base64 data"""
     with open(image_path, "rb") as img_file:
         return base64.b64encode(img_file.read()).decode("utf-8")
 
@@ -283,12 +287,14 @@ def narrate_story(summary, insights, advanced_analyses, charts, special_analyses
 
 
 def save_readme(content, output_folder):
+    """saves the readme file to the dedicated output folder depending on the dataset name"""
     readme_path = os.path.join(output_folder, "README.md")
     with open(readme_path, "w") as readme_file:
         readme_file.write(content)
     print(f"README.md saved at {readme_path}")
 
 if __name__ == "__main__":
+    """The main function of the code that will call all the above functions and generate the analysis on the dataset"""
     import sys
     import os
 
@@ -298,10 +304,8 @@ if __name__ == "__main__":
 
     dataset = sys.argv[1]
 
-    # Generate output folder name based on dataset name (without extension)
     output_folder = os.path.splitext(os.path.basename(dataset))[0]
 
-    # Create the output folder dynamically
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
         print(f"Created output folder: {output_folder}")
@@ -326,13 +330,13 @@ if __name__ == "__main__":
         insights = agentic_workflow(summary, feature_types)
         print("LLM insights retrieved.")
 
-        charts = create_visualizations(df, output_folder)  # Save visualizations in the output folder
+        charts = create_visualizations(df, output_folder)
         print("Visualizations created.")
 
         story = narrate_story(summary, insights, advanced_analyses, charts, special_analyses)
         print("Narrative created.")
 
-        save_readme(story, output_folder)  # Save README.md in the output folder
+        save_readme(story, output_folder)
         print(f"README.md generated in {output_folder}.")
     except Exception as e:
         print("Error:", e)
