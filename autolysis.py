@@ -232,15 +232,6 @@ def create_visualizations(df):
         plt.savefig("pairplot_analysis.png")
         plt.close()
 
-    for col in visualization_df.columns[:5]:
-        plt.figure(figsize=(8, 6))
-        sns.histplot(visualization_df[col], kde=True, color="skyblue")
-        plt.title(f"Distribution of {col}", fontsize=16)
-        plt.xlabel(col)
-        plt.ylabel("Frequency")
-        plt.savefig(f"distribution_{col}.png")
-        plt.close()
-
     return ["correlation_heatmap.png", "outlier_detection.png", "pairplot_analysis.png"]
 
 def image_to_base64(image_path):
