@@ -257,12 +257,28 @@ def analyze_image_with_vision_api(image_path, model="gpt-4o-mini"):
         "Content-Type": "application/json",
         "Authorization": f"Bearer {AIPROXY_TOKEN}"
     }
-    payload = {
-    "model": model,
-    "messages": [{"role": "user", "content": "Analyze this image."}],
-    "image": image_to_base64(image_path),
-    }
-    response = requests.post(BASE_URL, headers=headers, json=payload)
+
+    try:
+        with open(image_path, "rb") as image_file:
+            image_base64 = base64.b64encode(image_file.read()).decode("utf-8")
+        
+        payload = {
+            "model": model,
+            "image": image_base64
+        }
+        response = requests.post(BASE_URL, headers=headers, json=payload)
+        response.raise_for_status()
+
+        response_data = response.json()
+        insights = response_data.get("choices", [{}])[0].get("message", {}).get("content", "No insights returned.")
+        return insights
+
+    except FileNotFoundError:
+        return "Error: Image file not found."
+    except requests.RequestException as e:
+        return f"Error during API call: {e}"
+    except Exception as e:
+        return f"Unexpected error: {e}"
 
 def narrate_story(summary, insights, advanced_analyses, charts, special_analyses):
     """Generate a cohesive and structured narrative story."""
